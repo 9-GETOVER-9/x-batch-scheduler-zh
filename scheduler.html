@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量排期</title>
+    <!-- Vite resolves these aliases at build time -->
+    <style>
+      :root {
+        --color-brand: #ffffff;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        padding-bottom: 56px;
+      }
+
+      .btn-brand {
+        background-color: var(--color-brand);
+        color: #000;
+      }
+      .btn-brand:hover {
+        filter: brightness(0.9);
+      }
+      .bg-brand {
+        background-color: var(--color-brand);
+      }
+      .accent-brand {
+        accent-color: var(--color-brand);
+      }
+      .mode-tab.active {
+        background: var(--color-brand);
+        color: #000;
+      }
+
+      .post-card {
+        transition: all 0.2s ease;
+      }
+      .post-card:hover {
+        background-color: rgba(255, 255, 255, 0.03);
+      }
+
+      textarea:focus,
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #ffffff;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+      }
+
+      .status-badge {
+        transition: all 0.3s ease;
+      }
+
+      .fade-in {
+        animation: fadeIn 0.3s ease-in;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .pulse-dot {
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #101010;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #333333;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #555555;
+      }
+
+      .dropzone {
+        background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='12' ry='12' stroke='%23333333' stroke-width='2' stroke-dasharray='8%2c 8' stroke-dashoffset='0' stroke-linecap='round'/%3e%3c/svg%3e");
+        border-radius: 12px;
+        transition: all 0.2s ease;
+      }
+      .dropzone.drag-over {
+        background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='12' ry='12' stroke='%23ffffff' stroke-width='2' stroke-dasharray='8%2c 8' stroke-dashoffset='0' stroke-linecap='round'/%3e%3c/svg%3e");
+        background-color: rgba(255, 255, 255, 0.03);
+      }
+
+      .spinner {
+        border: 2px solid transparent;
+        border-top-color: var(--color-brand);
+        border-radius: 50%;
+        width: 12px;
+        height: 12px;
+        animation: spin 0.6s linear infinite;
+        display: inline-block;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .mode-tab {
+        transition: all 0.15s ease;
+      }
+      .mode-tab:not(.active) {
+        color: #777777;
+      }
+      .mode-tab:not(.active):hover {
+        color: #ffffff;
+      }
+
+      .image-thumb {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid #333333;
+        cursor: pointer;
+        transition: transform 0.15s ease;
+      }
+      .image-thumb:hover {
+        transform: scale(1.05);
+      }
+
+      .image-lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .image-lightbox img {
+        max-width: 90vw;
+        max-height: 90vh;
+        border-radius: 12px;
+      }
+
+      #batch-select {
+        max-width: 200px;
+        text-overflow: ellipsis;
+      }
+
+      .upload-thumb-wrapper {
+        position: relative;
+        display: inline-block;
+      }
+      .upload-thumb-wrapper img {
+        width: 64px;
+        height: 64px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid #333;
+      }
+      .upload-thumb-wrapper .remove-img {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #333;
+        color: #fff;
+        font-size: 11px;
+        line-height: 18px;
+        text-align: center;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.15s;
+      }
+      .upload-thumb-wrapper:hover .remove-img {
+        opacity: 1;
+      }
+
+      .crop-ratio-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #333;
+        background: transparent;
+        color: #777;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .crop-ratio-btn:hover {
+        border-color: #555;
+        color: #aaa;
+      }
+      .crop-ratio-btn.active {
+        border-color: #fff;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .crop-ratio-btn svg {
+        stroke: currentColor;
+      }
+
+      .color-adjust-row {
+        padding: 10px 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 8px;
+        border: 1px solid transparent;
+      }
+      .color-adjust-row:has(input[type="checkbox"]:checked) {
+        border-color: rgba(255, 255, 255, 0.06);
+      }
+      .color-adjust-row:has(input[type="checkbox"]:not(:checked))
+        input[type="range"] {
+        opacity: 0.3;
+        pointer-events: none;
+      }
+      .color-adjust-row:has(input[type="checkbox"]:not(:checked))
+        .text-th-gray.font-mono {
+        opacity: 0.3;
+      }
+
+      .info-tooltip {
+        cursor: help;
+      }
+      .rotate-180 {
+        transform: rotate(180deg);
+      }
+    </style>
+    <script type="module" crossorigin src="/chunks/scheduler-D8zjr51g.js"></script>
+    <link rel="modulepreload" crossorigin href="/chunks/brand-DqqKBS9W.js">
+    <link rel="stylesheet" crossorigin href="/assets/scheduler-BrmeZVa3.css">
+  </head>
+  <body class="h-full bg-th-dark text-white">
+    <div class="min-h-full flex flex-col">
+      <!-- Header -->
+      <header class="sticky top-0 z-50 border-b border-th-border" style="
+          background: rgba(16, 16, 16, 0.8);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        ">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <img src="/icons/icon48.png" class="w-7 h-7" alt="">
+            <h1 id="header-title" class="text-xl font-semibold">批量排期</h1>
+          </div>
+          <div class="flex items-center gap-3">
+            <div id="auth-status" class="flex items-center gap-2 text-sm text-th-gray">
+              <span class="w-2 h-2 rounded-full bg-th-gray"></span>
+              正在检查 X 登录状态…
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main content -->
+      <main class="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
+        <!-- Step 1: Input -->
+        <section id="input-section" class="mb-10">
+          <!-- Mode selector + Saved batches -->
+          <div class="flex items-center gap-4 mb-6">
+            <div class="flex items-center gap-1 bg-th-card rounded-full p-1 w-fit border border-th-border">
+              <button id="mode-manual" class="mode-tab active px-5 py-2 rounded-full text-sm font-medium cursor-pointer">
+                手动输入
+              </button>
+              <button id="mode-spreadsheet" class="mode-tab px-5 py-2 rounded-full text-sm font-medium cursor-pointer">
+                表格导入
+              </button>
+              <button id="mode-random" class="mode-tab px-5 py-2 rounded-full text-sm font-medium cursor-pointer">
+                随机组合
+              </button>
+            </div>
+            <div id="batch-select-wrapper" class="flex items-center gap-2 hidden">
+              <select id="batch-select" class="bg-th-card border border-th-border rounded-lg px-3 py-2 text-sm text-white cursor-pointer">
+                <option value="">新建批次</option>
+              </select>
+              <button id="delete-batch-btn" class="text-th-gray hover:text-th-error text-sm transition-colors cursor-pointer hidden" title="删除选中的批次">
+                ×
+              </button>
+            </div>
+          </div>
+
+          <!-- Spreadsheet Mode -->
+          <div id="spreadsheet-mode" class="hidden">
+            <div class="mb-4">
+              <h2 class="text-lg font-semibold text-white">
+                上传表格
+              </h2>
+              <p class="text-sm text-th-gray mt-1">
+                CSV 格式：
+                <code class="text-white bg-th-card px-1.5 py-0.5 rounded text-xs">caption,image_filename</code>
+                或
+                <code class="text-white bg-th-card px-1.5 py-0.5 rounded text-xs">caption,image_filename,datetime</code>
+              </p>
+              <p class="text-xs text-th-gray mt-1">
+                第三列可填写日期和时间；未填写时使用下方的排期设置。
+              </p>
+              <button id="download-example-csv" class="mt-2 text-xs text-th-accent hover:underline cursor-pointer inline-flex items-center gap-1 text-white/50 hover:text-white transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                下载示例表格
+              </button>
+            </div>
+
+            <!-- CSV Upload -->
+            <div class="dropzone p-6 text-center mb-4 cursor-pointer" id="csv-dropzone">
+              <input type="file" id="csv-file" accept=".csv,.txt" class="hidden">
+              <svg class="w-8 h-8 mx-auto text-th-gray mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 8h6m-5 0a3 3 0 110 6H9l3 3m-3-6h6m6 1a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <p class="text-sm text-th-gray">
+                将 CSV 文件拖到这里，或
+                <span class="text-white font-medium">点击选择文件</span>
+              </p>
+              <p id="csv-filename" class="text-xs text-white mt-2 hidden"></p>
+            </div>
+
+            <!-- Image Upload -->
+            <div class="dropzone p-6 text-center mb-4 cursor-pointer" id="images-dropzone">
+              <input type="file" id="image-files" accept="image/*" multiple class="hidden">
+              <svg class="w-8 h-8 mx-auto text-th-gray mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p class="text-sm text-th-gray">
+                将图片拖到这里，或
+                <span class="text-white font-medium">点击选择文件</span>
+              </p>
+              <p id="images-count" class="text-xs text-white mt-2 hidden"></p>
+            </div>
+            <div id="images-preview" class="flex flex-wrap gap-2 mb-4 hidden"></div>
+          </div>
+
+          <!-- Random Mode -->
+          <div id="random-mode" class="hidden">
+            <div class="mb-4">
+              <h2 class="text-lg font-semibold text-white">
+                随机帖子生成器
+              </h2>
+              <p class="text-sm text-th-gray mt-1">
+                上传图片并输入文案，每条帖子随机搭配一张图片和一段文案。
+              </p>
+            </div>
+
+            <!-- Image Upload (Random) -->
+            <div class="dropzone p-6 text-center mb-4 cursor-pointer" id="random-images-dropzone">
+              <input type="file" id="random-image-files" accept="image/*" multiple class="hidden">
+              <svg class="w-8 h-8 mx-auto text-th-gray mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p class="text-sm text-th-gray">
+                将图片拖到这里，或
+                <span class="text-white font-medium">点击选择文件</span>
+              </p>
+              <p id="random-images-count" class="text-xs text-white mt-2 hidden"></p>
+            </div>
+            <div id="random-images-preview" class="flex flex-wrap gap-2 mb-4 hidden"></div>
+
+            <!-- Captions -->
+            <div class="dropzone p-1 mb-4" id="captions-dropzone">
+              <textarea id="captions-input" rows="6" class="w-full bg-transparent text-white text-sm leading-relaxed p-5 rounded-xl resize-none" placeholder="每行输入一条文案：
+
+东京街头漫步
+巴厘岛日落
+巴黎的早晨咖啡
+曼谷街头美食"></textarea>
+            </div>
+
+            <!-- Number of posts -->
+            <div class="flex items-center gap-3 mb-4">
+              <label class="text-sm text-th-gray whitespace-nowrap">帖子数量</label>
+              <input type="number" id="num-posts" min="1" max="100" value="5" class="w-24 bg-th-card border border-th-border rounded-lg px-3 py-2 text-sm text-white">
+            </div>
+          </div>
+
+          <!-- Manual Mode -->
+          <div id="manual-mode">
+            <div class="mb-4">
+              <h2 class="text-lg font-semibold text-white">手动创建帖子</h2>
+              <p class="text-sm text-th-gray mt-1">
+                逐条输入帖子；图片可选。
+              </p>
+            </div>
+
+            <div id="manual-rows" class="space-y-3 mb-4"></div>
+
+            <button id="manual-add-row" class="text-sm text-white/60 hover:text-white transition-colors cursor-pointer inline-flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              添加一条帖子
+            </button>
+          </div>
+
+          <!-- Timestamp detected notice (shown when CSV has timestamps) -->
+          <div id="csv-timestamps-notice" class="hidden mt-4 p-4 bg-th-card rounded-xl border border-th-border flex items-center gap-2">
+            <svg class="w-4 h-4 text-th-success shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span class="text-sm text-th-gray">将使用表格中的日期和时间，无需设置下方排期。</span>
+          </div>
+
+          <!-- Schedule options (shared) -->
+          <div id="schedule-options" class="mt-4 p-5 bg-th-card rounded-xl border border-th-border">
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="text-sm font-medium text-white">排期设置</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs text-th-gray mb-1.5">开始日期和时间</label>
+                <input type="datetime-local" id="start-datetime" class="w-full bg-th-dark border border-th-border rounded-lg px-3 py-2 text-sm text-white">
+                <label class="flex items-center gap-2 mt-2 cursor-pointer">
+                  <input type="checkbox" id="start-now" class="accent-brand w-4 h-4 cursor-pointer">
+                  <span class="text-xs text-th-gray">立即开始</span>
+                </label>
+                <label class="flex items-center gap-2 mt-2 cursor-pointer" id="randomize-time-wrapper">
+                  <input type="checkbox" id="randomize-time" class="accent-brand w-4 h-4 cursor-pointer">
+                  <span class="text-xs text-th-gray">随机调整间隔</span>
+                  <span class="info-tooltip" title="在帖子间隔上添加约 ±30% 的随机变化">
+                    <svg class="w-3.5 h-3.5 text-th-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </span>
+                </label>
+              </div>
+              <div>
+                <label class="block text-xs text-th-gray mb-1.5">帖子间隔</label>
+                <div class="flex gap-2">
+                  <input type="number" id="interval-value" min="1" value="60" class="w-20 bg-th-dark border border-th-border rounded-lg px-3 py-2 text-sm text-white">
+                  <select id="interval-unit" class="flex-1 bg-th-dark border border-th-border rounded-lg px-3 py-2 text-sm text-white">
+                    <option value="1">分钟</option>
+                    <option value="60" selected>小时</option>
+                    <option value="1440">天</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs text-th-gray mb-1.5">时区</label>
+                <select id="timezone" class="w-full bg-th-dark border border-th-border rounded-lg px-3 py-2 text-sm text-white"></select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Image Processing Options -->
+          <div id="image-processing-options" class="mt-4 bg-th-card rounded-xl border border-th-border">
+            <button type="button" id="image-processing-toggle" class="w-full flex items-center justify-between p-5 cursor-pointer text-left">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span class="text-sm font-medium text-white">图片处理</span>
+              </div>
+              <svg id="image-processing-chevron" class="w-4 h-4 text-th-gray transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div id="image-processing-body" class="hidden px-5 pb-5">
+              <p class="text-xs text-th-gray mb-4 leading-relaxed">
+                对重复使用的图片进行处理，使每次上传的文件略有不同。
+              </p>
+
+              <!-- Remove Metadata -->
+              <label class="flex items-center gap-3 cursor-pointer mb-4">
+                <input type="checkbox" id="remove-metadata" class="accent-brand w-4 h-4 cursor-pointer">
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-sm text-white">移除元数据</span>
+                    <span class="info-tooltip" title="移除 EXIF/GPS 信息，并重新编码图片">
+                      <svg class="w-3.5 h-3.5 text-th-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </span>
+                  </div>
+                  <p class="text-xs text-th-gray">
+                    移除 EXIF 信息，并让重复图片的文件内容略有不同
+                  </p>
+                </div>
+              </label>
+
+              <!-- Random Variations -->
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" id="random-variations" class="accent-brand w-4 h-4 cursor-pointer">
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-sm text-white">随机图片变化</span>
+                    <span class="info-tooltip" title="上传前随机裁剪、调色或翻转图片">
+                      <svg class="w-3.5 h-3.5 text-th-gray" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </span>
+                  </div>
+                  <p class="text-xs text-th-gray">
+                    为每条帖子随机裁剪、调色或翻转图片
+                  </p>
+                </div>
+              </label>
+
+              <!-- Variation Controls -->
+              <div id="variation-controls" class="hidden mt-5 ml-7 space-y-6">
+                <!-- Crop Ratios -->
+                <div>
+                  <label class="block text-xs text-th-gray mb-2.5">裁剪比例（可多选）</label>
+                  <div class="flex flex-wrap gap-2">
+                    <button type="button" class="crop-ratio-btn active" data-ratio="original">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="2" y="4" width="16" height="12" rx="1.5" />
+                      </svg>
+                      <span>原始比例</span>
+                    </button>
+                    <button type="button" class="crop-ratio-btn" data-ratio="1:1">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="14" height="14" rx="1.5" />
+                      </svg>
+                      <span>1:1</span>
+                    </button>
+                    <button type="button" class="crop-ratio-btn" data-ratio="4:5">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="4" y="2" width="12" height="16" rx="1.5" />
+                      </svg>
+                      <span>4:5</span>
+                    </button>
+                    <button type="button" class="crop-ratio-btn" data-ratio="5:4">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="2" y="4" width="16" height="12" rx="1.5" />
+                      </svg>
+                      <span>5:4</span>
+                    </button>
+                    <button type="button" class="crop-ratio-btn" data-ratio="16:9">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="1" y="5.5" width="18" height="9" rx="1.5" />
+                      </svg>
+                      <span>16:9</span>
+                    </button>
+                    <button type="button" class="crop-ratio-btn" data-ratio="9:16">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="5.5" y="1" width="9" height="18" rx="1.5" />
+                      </svg>
+                      <span>9:16</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Color Adjustments -->
+                <div class="space-y-5">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs text-th-gray font-medium uppercase tracking-wide">色彩调整</span>
+                  </div>
+
+                  <!-- Saturation -->
+                  <div class="color-adjust-row">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" id="sat-enabled" checked class="accent-brand w-4 h-4 cursor-pointer">
+                        <label for="sat-enabled" class="text-xs text-white cursor-pointer">饱和度</label>
+                      </div>
+                      <span id="sat-range-label" class="text-xs text-th-gray font-mono">-10% 至 +10%</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <input type="range" id="sat-min" min="-50" max="0" value="-10" class="flex-1 accent-brand">
+                      <input type="range" id="sat-max" min="0" max="50" value="10" class="flex-1 accent-brand">
+                    </div>
+                  </div>
+
+                  <!-- Brightness -->
+                  <div class="color-adjust-row">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" id="bright-enabled" checked class="accent-brand w-4 h-4 cursor-pointer">
+                        <label for="bright-enabled" class="text-xs text-white cursor-pointer">亮度</label>
+                      </div>
+                      <span id="bright-range-label" class="text-xs text-th-gray font-mono">-10% 至 +10%</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <input type="range" id="bright-min" min="-50" max="0" value="-10" class="flex-1 accent-brand">
+                      <input type="range" id="bright-max" min="0" max="50" value="10" class="flex-1 accent-brand">
+                    </div>
+                  </div>
+
+                  <!-- Contrast -->
+                  <div class="color-adjust-row">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" id="contrast-enabled" checked class="accent-brand w-4 h-4 cursor-pointer">
+                        <label for="contrast-enabled" class="text-xs text-white cursor-pointer">对比度</label>
+                      </div>
+                      <span id="contrast-range-label" class="text-xs text-th-gray font-mono">-10% 至 +10%</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <input type="range" id="contrast-min" min="-50" max="0" value="-10" class="flex-1 accent-brand">
+                      <input type="range" id="contrast-max" min="0" max="50" value="10" class="flex-1 accent-brand">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Horizontal Flip -->
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="horizontal-flip" class="accent-brand w-4 h-4 cursor-pointer">
+                  <span class="text-xs text-white">随机水平翻转（50% 概率）</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 flex items-center gap-3">
+            <button id="parse-btn" class="btn-brand font-semibold px-6 py-2.5 rounded-full text-sm transition-colors cursor-pointer">
+              预览帖子
+            </button>
+            <button id="clear-btn" class="text-th-gray hover:text-white text-sm transition-colors cursor-pointer">
+              清空
+            </button>
+            <button id="save-batch-btn" class="ml-auto text-th-gray hover:text-white text-sm transition-colors flex items-center gap-1 cursor-pointer border border-th-border rounded-lg px-3 py-2">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              保存批次
+            </button>
+          </div>
+        </section>
+
+        <!-- Step 2: Preview -->
+        <section id="preview-section" class="hidden mb-10">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-lg font-semibold text-white">预览</h2>
+              <p class="text-sm text-th-gray mt-1">
+                <span id="post-count">0</span> 条帖子等待排期
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button id="back-btn" class="text-th-gray hover:text-white text-sm transition-colors flex items-center gap-1 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                编辑
+              </button>
+              <button id="schedule-all-btn" class="btn-brand font-semibold px-6 py-2.5 rounded-full text-sm transition-colors flex items-center gap-2 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                全部排期
+              </button>
+            </div>
+          </div>
+
+          <div id="posts-list" class="space-y-3"></div>
+        </section>
+
+        <!-- Progress / Results -->
+        <section id="progress-section" class="hidden mb-10">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-lg font-semibold text-white">正在排期</h2>
+              <p class="text-sm text-th-gray mt-1" id="progress-text">
+                正在为帖子排期…
+              </p>
+            </div>
+          </div>
+
+          <div class="w-full bg-th-card rounded-full h-2 mb-6 overflow-hidden">
+            <div id="progress-bar" class="bg-brand h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+
+          <div id="results-list" class="space-y-3"></div>
+
+          <div id="done-actions" class="hidden mt-6 flex items-center gap-3">
+            <button id="new-batch-btn" class="btn-brand font-semibold px-6 py-2.5 rounded-full text-sm transition-colors cursor-pointer">
+              继续排期
+            </button>
+            <a id="open-platform-link" href="#" target="_blank" class="text-white/70 hover:text-white text-sm transition-colors">
+              打开 X →
+            </a>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Shell footer -->
+    <footer id="shell-footer" class="shell-footer">
+      <div class="shell-footer-left">
+        <button id="shell-feedback-btn" class="shell-footer-btn">
+          反馈意见
+        </button>
+        <span id="shell-footer-version" class="shell-footer-version"></span>
+      </div>
+      <div class="shell-footer-right">
+        <div id="shell-footer-stars" class="shell-stars"></div>
+        <button id="shell-support-btn" class="shell-footer-btn">
+          支持开发者
+        </button>
+      </div>
+    </footer>
+
+    <!-- Rating modal -->
+    <div id="shell-rating-overlay" class="shell-overlay">
+      <div class="shell-modal">
+        <h3>评价此扩展</h3>
+        <p>你觉得 <span id="shell-rate-name"></span>?</p>
+        <div id="shell-modal-stars" class="shell-modal-stars"></div>
+        <button class="shell-submit-btn" id="shell-rate-submit" disabled>
+          评分
+        </button>
+        <button class="shell-modal-close" id="shell-rate-cancel">取消</button>
+      </div>
+    </div>
+
+    <!-- Feedback modal -->
+    <div id="shell-feedback-overlay" class="shell-overlay">
+      <div class="shell-modal">
+        <h3 id="shell-fb-title">发送反馈</h3>
+        <p id="shell-fb-desc">
+          我们会阅读每条反馈。欢迎告诉我们如何改进。
+        </p>
+        <p id="shell-fb-email" class="shell-email"></p>
+        <form id="shell-fb-form">
+          <select class="shell-input" id="shell-fb-category" required>
+            <option value="" disabled selected>类别</option>
+            <option value="General Inquiry">一般咨询</option>
+            <option value="Feedback/Help">反馈或求助</option>
+            <option value="Suggestions">功能建议</option>
+            <option value="Thank You">感谢</option>
+          </select>
+          <input type="text" class="shell-input" id="shell-fb-subject" placeholder="主题" required>
+          <textarea class="shell-input" id="shell-fb-message" placeholder="请输入反馈内容…" required></textarea>
+          <button type="submit" class="shell-submit-btn" id="shell-fb-submit">
+            发送
+          </button>
+        </form>
+        <div id="shell-fb-msg" class="shell-msg"></div>
+        <button class="shell-modal-close" id="shell-fb-cancel">取消</button>
+      </div>
+    </div>
+
+    <!-- Thank you modal (shown after 4-5 star rating) -->
+    <div id="shell-thanks-overlay" class="shell-overlay">
+      <div class="shell-modal shell-thanks-modal">
+        <h3>谢谢你！</h3>
+        <p>
+          <span id="shell-thanks-name"></span> 是一款免费工具，我希望继续保持免费。这是个人维护的项目，没有团队、投资或广告。
+        </p>
+        <p>
+          如果它帮到了你，可以通过以下方式支持后续维护：
+        </p>
+        <div class="shell-thanks-actions">
+          <button class="shell-thanks-btn shell-thanks-tip" id="shell-thanks-tip">
+            赞助作者
+          </button>
+          <button class="shell-thanks-btn shell-thanks-review" id="shell-thanks-review">
+            发表公开评价
+          </button>
+        </div>
+        <button class="shell-modal-close" id="shell-thanks-cancel">
+          以后再说
+        </button>
+      </div>
+    </div>
+
+    <!--
+      Single module entry replaces the four separate script tags:
+        brand.js -> @variation/brand.js (sets window.BRAND)
+        platform.js -> @variation/platform.js (sets window.PLATFORM)
+        core.js -> @shared/core.js (reads BRAND + PLATFORM globals)
+        shell.js -> @shell/shell.js (reads BRAND global)
+    -->
+  </body>
+</html>

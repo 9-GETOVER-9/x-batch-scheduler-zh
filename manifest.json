@@ -1,0 +1,3 @@
+{
+"update_url": "https://clients2.google.com/service/update2/crx",
+"manifest_version":3,"name":"X 批量排期（中文）","description":"批量安排 X 帖子：导入表格、手动输入或随机搭配图片与文案。","version":"1.2.2","icons":{"16":"icons/icon16.png","48":"icons/icon48.png","128":"icons/icon128.png"},"permissions":["cookies","storage","tabs"],"host_permissions":["https://x.com/*","https://upload.x.com/*"],"action":{"default_title":"X 批量排期"},"background":{"service_worker":"background.js"}}
